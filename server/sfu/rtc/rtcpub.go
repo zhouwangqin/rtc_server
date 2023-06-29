@@ -3,11 +3,11 @@ package rtc
 import (
 	"errors"
 	"io"
+	"log"
 
 	"github.com/pion/rtcp"
 	"github.com/pion/rtp"
 	"github.com/pion/webrtc/v2"
-	"github.com/zhuanxin-sz/go-protoo/logger"
 )
 
 const (
@@ -45,20 +45,20 @@ func NewPub(pid string) (*Pub, error) {
 	api := webrtc.NewAPI(webrtc.WithMediaEngine(engine), webrtc.WithSettingEngine(setting))
 	pcnew, err := api.NewPeerConnection(cfg)
 	if err != nil {
-		logger.Errorf("pub new peer err=%v, pubid=%s", err, pid)
+		log.Printf("pub new peer err=%v, pubid=%s", err, pid)
 		return nil, err
 	}
 
 	_, err = pcnew.AddTransceiverFromKind(webrtc.RTPCodecTypeAudio, webrtc.RtpTransceiverInit{Direction: webrtc.RTPTransceiverDirectionRecvonly})
 	if err != nil {
-		logger.Errorf("pub add audio recv err=%v, pubid=%s", err, pid)
+		log.Printf("pub add audio recv err=%v, pubid=%s", err, pid)
 		pcnew.Close()
 		return nil, err
 	}
 
 	_, err = pcnew.AddTransceiverFromKind(webrtc.RTPCodecTypeVideo, webrtc.RtpTransceiverInit{Direction: webrtc.RTPTransceiverDirectionRecvonly})
 	if err != nil {
-		logger.Errorf("pub add video recv err=%v, pubid=%s", err, pid)
+		log.Printf("pub add video recv err=%v, pubid=%s", err, pid)
 		pcnew.Close()
 		return nil, err
 	}
@@ -82,15 +82,12 @@ func NewPub(pid string) (*Pub, error) {
 // OnPeerConnect Pub连接状态回调
 func (pub *Pub) OnPeerConnect(state webrtc.PeerConnectionState) {
 	if state == webrtc.PeerConnectionStateConnected {
-		logger.Debugf("pub peer connected = %s", pub.Id)
 		pub.alive = true
 	}
 	if state == webrtc.PeerConnectionStateDisconnected {
-		logger.Debugf("pub peer disconnected = %s", pub.Id)
 		pub.alive = false
 	}
 	if state == webrtc.PeerConnectionStateFailed {
-		logger.Debugf("pub peer failed = %s", pub.Id)
 		pub.alive = false
 	}
 }
@@ -99,19 +96,16 @@ func (pub *Pub) OnPeerConnect(state webrtc.PeerConnectionState) {
 func (pub *Pub) OnTrackRemote(track *webrtc.Track, receiver *webrtc.RTPReceiver) {
 	if track.Kind() == webrtc.RTPCodecTypeAudio {
 		pub.TrackAudio = receiver
-		logger.Debugf("OnTrackRemote pub audio = %s", pub.Id)
 		go pub.DoAudioRtp()
 	}
 	if track.Kind() == webrtc.RTPCodecTypeVideo {
 		pub.TrackVideo = receiver
-		logger.Debugf("OnTrackRemote pub video = %s", pub.Id)
 		go pub.DoVideoRtp()
 	}
 }
 
 // Close 关闭连接
 func (pub *Pub) Close() {
-	logger.Debugf("pub close = %s", pub.Id)
 	pub.stop = true
 	pub.pc.Close()
 	close(pub.RtpAudioCh)
@@ -122,19 +116,19 @@ func (pub *Pub) Close() {
 func (pub *Pub) Answer(offer webrtc.SessionDescription) (webrtc.SessionDescription, error) {
 	err := pub.pc.SetRemoteDescription(offer)
 	if err != nil {
-		logger.Errorf("pub set offer err=%v, pubid=%s", err, pub.Id)
+		log.Printf("pub set offer err=%v, pubid=%s", err, pub.Id)
 		return webrtc.SessionDescription{}, err
 	}
 
 	answer, err := pub.pc.CreateAnswer(nil)
 	if err != nil {
-		logger.Errorf("pub create answer err=%v, pubid=%s", err, pub.Id)
+		log.Printf("pub create answer err=%v, pubid=%s", err, pub.Id)
 		return webrtc.SessionDescription{}, err
 	}
 
 	err = pub.pc.SetLocalDescription(answer)
 	if err != nil {
-		logger.Errorf("pub set answer err=%v, pubid=%s", err, pub.Id)
+		log.Printf("pub set answer err=%v, pubid=%s", err, pub.Id)
 		return webrtc.SessionDescription{}, err
 	}
 	return answer, err
@@ -152,7 +146,7 @@ func (pub *Pub) DoAudioRtp() {
 			if err != nil {
 				if err == io.EOF {
 					pub.alive = false
-					logger.Errorf("pub.TrackAudio ReadRTP error io.EOF")
+					log.Println("pub.TrackAudio ReadRTP error io.EOF")
 				}
 			} else {
 				if pub.stop || !pub.alive {
@@ -176,7 +170,7 @@ func (pub *Pub) DoVideoRtp() {
 			if err != nil {
 				if err == io.EOF {
 					pub.alive = false
-					logger.Errorf("pub.TrackVideo ReadRTP error io.EOF")
+					log.Println("pub.TrackVideo ReadRTP error io.EOF")
 				}
 			} else {
 				if pub.stop || !pub.alive {

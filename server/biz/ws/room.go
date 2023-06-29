@@ -1,9 +1,8 @@
 package ws
 
 import (
+	"log"
 	"sync"
-
-	"github.com/zhuanxin-sz/go-protoo/logger"
 )
 
 // Room 房间对象
@@ -108,7 +107,7 @@ func (room *Room) NotifyAll(method string, data map[string]interface{}) {
 func (room *Room) Close() {
 	room.peersMutex.Lock()
 	defer room.peersMutex.Unlock()
-	logger.Debugf("Close Room rid=%s", room.id)
+	log.Printf("Close Room rid=%s", room.id)
 	for _, peer := range room.peers {
 		peer.Close()
 	}

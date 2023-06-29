@@ -1,6 +1,7 @@
 package src
 
 import (
+	"log"
 	"net/http"
 	_ "net/http/pprof"
 	"server/pkg/etcd"
@@ -10,7 +11,6 @@ import (
 	"server/server/biz/ws"
 	"time"
 
-	"github.com/zhuanxin-sz/go-protoo/logger"
 	nprotoo "github.com/zhuanxin-sz/nats-protoo"
 )
 
@@ -65,7 +65,7 @@ func Stop() {
 }
 
 func debug() {
-	logger.Debugf("Start biz pprof on %s", conf.Global.Pprof)
+	log.Printf("Start biz pprof on %s", conf.Global.Pprof)
 	http.ListenAndServe(conf.Global.Pprof, nil)
 }
 
@@ -147,18 +147,16 @@ func GetRPCHandlerByPayload(name string) (*nprotoo.Requestor, string) {
 func GetBizExistByUID(rid, uid string) bool {
 	islbRpc := GetRPCHandlerByServiceName("islb")
 	if islbRpc == nil {
-		logger.Errorf("GetBizExistByUID can't get available islb node")
+		log.Println("GetBizExistByUID can't get available islb node")
 		return false
 	}
 
 	// resp = "rid", rid, "uid", uid, "bizid", bizid
 	resp, err := islbRpc.SyncRequest(proto.BizToIslbGetBizInfo, util.Map("rid", rid, "uid", uid))
 	if err != nil {
-		logger.Errorf(err.Reason)
+		log.Println(err.Reason)
 		return false
 	}
-
-	//logger.Debugf("GetBizExistByUID resp ==> %v", resp)
 
 	bizid := util.Val(resp, "bizid")
 	if bizid != "" {
@@ -176,18 +174,18 @@ func GetBizExistByUID(rid, uid string) bool {
 func GetSFURPCHandlerByMID(rid, mid string) *nprotoo.Requestor {
 	islbRpc := GetRPCHandlerByServiceName("islb")
 	if islbRpc == nil {
-		logger.Errorf("GetSFURPCHandlerByMID can't get available islb node")
+		log.Println("GetSFURPCHandlerByMID can't get available islb node")
 		return nil
 	}
 
 	// resp = "rid", rid, "sfuid", sfuid
 	resp, err := islbRpc.SyncRequest(proto.BizToIslbGetSfuInfo, util.Map("rid", rid, "mid", mid))
 	if err != nil {
-		logger.Errorf(err.Reason)
+		log.Println(err.Reason)
 		return nil
 	}
 
-	logger.Infof("GetSFURPCHandlerByMID resp ==> %v", resp)
+	log.Printf("GetSFURPCHandlerByMID resp ==> %v", resp)
 
 	var sfu *nprotoo.Requestor
 	sfuid := util.Val(resp, "sfuid")
@@ -201,7 +199,7 @@ func GetSFURPCHandlerByMID(rid, mid string) *nprotoo.Requestor {
 func FindRoomUsers(rid, uid string) (bool, []interface{}) {
 	islbRpc := GetRPCHandlerByServiceName("islb")
 	if islbRpc == nil {
-		logger.Errorf("FindRoomUsers can't get available islb node")
+		log.Println("FindRoomUsers can't get available islb node")
 		return false, nil
 	}
 
@@ -209,14 +207,14 @@ func FindRoomUsers(rid, uid string) (bool, []interface{}) {
 	// user = "rid", rid, "uid", uid, "bizid", bizid
 	resp, err := islbRpc.SyncRequest(proto.BizToIslbGetRoomUsers, util.Map("rid", rid, "uid", uid))
 	if err != nil {
-		logger.Errorf(err.Reason)
+		log.Println(err.Reason)
 		return false, nil
 	}
 
-	logger.Infof("FindRoomUsers resp ==> %v", resp)
+	log.Printf("FindRoomUsers resp ==> %v", resp)
 
 	if resp["users"] == nil {
-		logger.Errorf("FindRoomUsers users is nil")
+		log.Println("FindRoomUsers users is nil")
 		return false, nil
 	}
 
@@ -228,7 +226,7 @@ func FindRoomUsers(rid, uid string) (bool, []interface{}) {
 func FindRoomPubs(rid, uid string) (bool, []interface{}) {
 	islbRpc := GetRPCHandlerByServiceName("islb")
 	if islbRpc == nil {
-		logger.Errorf("FindRoomPubs can't get available islb node")
+		log.Println("FindRoomPubs can't get available islb node")
 		return false, nil
 	}
 
@@ -236,14 +234,14 @@ func FindRoomPubs(rid, uid string) (bool, []interface{}) {
 	// pub = "rid", rid, "uid", uid, "mid", mid, "sfuid", sfuid, "minfo", util.Unmarshal(minfo)
 	resp, err := islbRpc.SyncRequest(proto.BizToIslbGetRoomPubs, util.Map("rid", rid, "uid", uid))
 	if err != nil {
-		logger.Errorf(err.Reason)
+		log.Println(err.Reason)
 		return false, nil
 	}
 
-	logger.Infof("FindRoomPubs resp ==> %v", resp)
+	log.Printf("FindRoomPubs resp ==> %v", resp)
 
 	if resp["pubs"] == nil {
-		logger.Errorf("FindRoomPubs pubs is nil")
+		log.Println("FindRoomPubs pubs is nil")
 		return false, nil
 	}
 
@@ -275,7 +273,7 @@ func CheckRoom() {
 							SendNotifysByUid(rid, uid, proto.BizToClientOnStreamRemove, rmPubs)
 						}
 					} else {
-						logger.Errorf("biz.checkRoom request islb streamRemove err:%s", err.Reason)
+						log.Printf("biz.checkRoom request islb streamRemove err:%s", err.Reason)
 					}
 					// 删除数据库人
 					// resp = "rid", rid, "uid", uid
@@ -283,15 +281,15 @@ func CheckRoom() {
 					if err == nil {
 						SendNotifyByUid(rid, uid, proto.BizToClientOnLeave, resp)
 					} else {
-						logger.Errorf("biz.checkRoom request islb clientLeave err:%s", err.Reason)
+						log.Printf("biz.checkRoom request islb clientLeave err:%s", err.Reason)
 					}
 					// 删除本地对象
 					room.DelPeer(uid)
-					logger.Debugf("room=%s del peer uid=%", rid, uid)
+					log.Printf("room=%s del peer uid=%s", rid, uid)
 				}
 			}
 			if len(room.GetPeers()) == 0 {
-				logger.Debugf("no peer in room=%s now", rid)
+				log.Printf("no peer in room=%s now", rid)
 				rooms.DelRoom(rid)
 			}
 		}

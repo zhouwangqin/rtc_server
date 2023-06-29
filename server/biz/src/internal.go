@@ -2,10 +2,10 @@ package src
 
 import (
 	"fmt"
+	"log"
 	"server/pkg/proto"
 	"server/pkg/util"
 
-	"github.com/zhuanxin-sz/go-protoo/logger"
 	nprotoo "github.com/zhuanxin-sz/nats-protoo"
 )
 
@@ -17,7 +17,7 @@ func handleRpcMsg(request map[string]interface{}, accept nprotoo.AcceptFunc, rej
 // 处理biz的rpc请求
 func handleRPCRequest(request map[string]interface{}, accept nprotoo.AcceptFunc, reject nprotoo.RejectFunc) {
 	defer util.Recover("biz.handleRPCRequest")
-	logger.Debugf("biz.handleRPCRequest request=%v", request)
+	log.Printf("biz.handleRPCRequest request=%v", request)
 
 	method := request["method"].(string)
 	data := request["data"].(map[string]interface{})
@@ -60,14 +60,14 @@ func peerKick(data map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 			SendNotifysByUid(rid, uid, proto.BizToBizOnStreamRemove, rmPubs)
 		}
 	} else {
-		logger.Errorf("biz.peerKick request islb streamRemove err:%s", err.Reason)
+		log.Printf("biz.peerKick request islb streamRemove err:%s", err.Reason)
 	}
 
 	// 删除数据库人
 	// resp = util.Map("rid", rid, "uid", uid)
 	_, err = islbRpc.SyncRequest(proto.BizToIslbOnLeave, util.Map("rid", rid, "uid", uid))
 	if err != nil {
-		logger.Errorf("biz.peerKick request islb clientLeave err:%s", err.Reason)
+		log.Printf("biz.peerKick request islb clientLeave err:%s", err.Reason)
 	}
 	// 发送广播给所有人
 	SendNotifyByUid(rid, uid, proto.BizToBizOnLeave, resp)
@@ -86,7 +86,7 @@ func peerKick(data map[string]interface{}) (map[string]interface{}, *nprotoo.Err
 // handleBroadCastMsgs 处理广播消息
 func handleBroadcast(msg map[string]interface{}, subj string) {
 	defer util.Recover("biz.handleBroadcast")
-	logger.Debugf("biz.handleBroadcast msg=%v", msg)
+	log.Printf("biz.handleBroadcast msg=%v", msg)
 
 	method := util.Val(msg, "method")
 	data := msg["data"].(map[string]interface{})

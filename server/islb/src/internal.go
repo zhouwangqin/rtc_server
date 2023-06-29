@@ -2,11 +2,11 @@ package src
 
 import (
 	"fmt"
+	"log"
 	"server/pkg/proto"
 	"server/pkg/util"
 	"strings"
 
-	"github.com/zhuanxin-sz/go-protoo/logger"
 	nprotoo "github.com/zhuanxin-sz/nats-protoo"
 )
 
@@ -59,7 +59,6 @@ func handleRPCRequest(request map[string]interface{}, accept nprotoo.AcceptFunc,
 */
 // 有人加入房间
 func clientJoin(data map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
-	logger.Debugf("islb.clientJoin data=%v", data)
 	rid := util.Val(data, "rid")
 	uid := util.Val(data, "uid")
 	bizid := util.Val(data, "bizid")
@@ -67,7 +66,7 @@ func clientJoin(data map[string]interface{}) (map[string]interface{}, *nprotoo.E
 	uKey := proto.GetUserNodeKey(rid, uid)
 	err := redis.Set(uKey, bizid, redisShort)
 	if err != nil {
-		logger.Errorf("islb.clientJoin redis.Set err=%v, data=%v", err, data)
+		log.Printf("islb.clientJoin redis.Set err=%v, data=%v", err, data)
 		return nil, &nprotoo.Error{Code: 401, Reason: fmt.Sprintf("clientJoin err=%v", err)}
 	}
 	return util.Map("rid", rid, "uid", uid, "bizid", bizid), nil
@@ -78,7 +77,6 @@ func clientJoin(data map[string]interface{}) (map[string]interface{}, *nprotoo.E
 */
 // 有人退出房间
 func clientLeave(data map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
-	logger.Debugf("islb.clientLeave data=%v", data)
 	rid := util.Val(data, "rid")
 	uid := util.Val(data, "uid")
 	// 获取用户的Biz服务器
@@ -87,7 +85,7 @@ func clientLeave(data map[string]interface{}) (map[string]interface{}, *nprotoo.
 	if len(ukeys) > 0 {
 		err := redis.Del(uKey)
 		if err != nil {
-			logger.Errorf("islb.clientLeave redis.Del err=%v, data=%v", err, data)
+			log.Printf("islb.clientLeave redis.Del err=%v, data=%v", err, data)
 		}
 	}
 	return util.Map("rid", rid, "uid", uid), nil
@@ -104,7 +102,7 @@ func keepalive(data map[string]interface{}) (map[string]interface{}, *nprotoo.Er
 	uKey := proto.GetUserNodeKey(rid, uid)
 	err := redis.Expire(uKey, redisShort)
 	if err != nil {
-		logger.Errorf("islb.keepalive redis.Expire err=%v, data=%v", err, data)
+		log.Printf("islb.keepalive redis.Expire err=%v, data=%v", err, data)
 		return nil, &nprotoo.Error{Code: 402, Reason: fmt.Sprintf("keepalive err=%v", err)}
 	}
 	return util.Map("rid", rid, "uid", uid), nil
@@ -115,7 +113,6 @@ func keepalive(data map[string]interface{}) (map[string]interface{}, *nprotoo.Er
 */
 // 有人发布流
 func streamAdd(data map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
-	logger.Debugf("islb.streamAdd data=%v", data)
 	rid := util.Val(data, "rid")
 	uid := util.Val(data, "uid")
 	mid := util.Val(data, "mid")
@@ -125,14 +122,14 @@ func streamAdd(data map[string]interface{}) (map[string]interface{}, *nprotoo.Er
 	ukey := proto.GetMediaInfoKey(rid, uid, mid)
 	err := redis.Set(ukey, minfo, redisKeyTTL)
 	if err != nil {
-		logger.Errorf("islb.streamAdd media redis.Set err=%v, data=%v", err, data)
+		log.Printf("islb.streamAdd media redis.Set err=%v, data=%v", err, data)
 		return nil, &nprotoo.Error{Code: 405, Reason: fmt.Sprintf("streamAdd err=%v", err)}
 	}
 	// 获取用户流的sfu服务器
 	ukey = proto.GetMediaPubKey(rid, uid, mid)
 	err = redis.Set(ukey, sfuid, redisKeyTTL)
 	if err != nil {
-		logger.Errorf("islb.streamAdd pub redis.Set err=%v, data=%v", err, data)
+		log.Printf("islb.streamAdd pub redis.Set err=%v, data=%v", err, data)
 		return nil, &nprotoo.Error{Code: 406, Reason: fmt.Sprintf("streamAdd err=%v", err)}
 	}
 	// 生成resp对象
@@ -144,7 +141,6 @@ func streamAdd(data map[string]interface{}) (map[string]interface{}, *nprotoo.Er
 */
 // 有人取消发布流
 func streamRemove(data map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
-	logger.Debugf("islb.streamRemove data=%v", data)
 	rid := util.Val(data, "rid")
 	uid := util.Val(data, "uid")
 	mid := util.Val(data, "mid")
@@ -159,7 +155,7 @@ func streamRemove(data map[string]interface{}) (map[string]interface{}, *nprotoo
 			// 删除key值
 			err := redis.Del(ukey)
 			if err != nil {
-				logger.Errorf("islb.streamRemove media redis.Del err=%v, data=%v", err, data)
+				log.Printf("islb.streamRemove media redis.Del err=%v, data=%v", err, data)
 			}
 		}
 		ukey = "/pub/rid/" + rid + "/uid/" + uid + "/mid/*"
@@ -171,7 +167,7 @@ func streamRemove(data map[string]interface{}) (map[string]interface{}, *nprotoo
 			// 删除key值
 			err := redis.Del(ukey)
 			if err != nil {
-				logger.Errorf("islb.streamRemove pub redis.Del err=%v, data=%v", err, data)
+				log.Printf("islb.streamRemove pub redis.Del err=%v, data=%v", err, data)
 			}
 			rmPubs = append(rmPubs, util.Map("rid", rid, "uid", uid, "mid", mid))
 		}
@@ -184,7 +180,7 @@ func streamRemove(data map[string]interface{}) (map[string]interface{}, *nprotoo
 			// 删除key值
 			err := redis.Del(ukey)
 			if err != nil {
-				logger.Errorf("islb.streamRemove media redis.Del err=%v, data=%v", err, data)
+				log.Printf("islb.streamRemove media redis.Del err=%v, data=%v", err, data)
 			}
 		}
 		// 获取用户流的sfu服务器
@@ -197,7 +193,7 @@ func streamRemove(data map[string]interface{}) (map[string]interface{}, *nprotoo
 			// 删除key值
 			err := redis.Del(ukey)
 			if err != nil {
-				logger.Errorf("islb.streamRemove pub redis.Del err=%v, data=%v", err, data)
+				log.Printf("islb.streamRemove pub redis.Del err=%v, data=%v", err, data)
 			}
 			rmPubs = append(rmPubs, util.Map("rid", rid, "uid", uid, "mid", mid))
 		}
@@ -247,7 +243,6 @@ func getSfuByMid(data map[string]interface{}) (map[string]interface{}, *nprotoo.
 */
 // 获取房间其他用户数据
 func getRoomUsers(data map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
-	logger.Debugf("islb.getRoomUsers data=%v", data)
 	rid := util.Val(data, "rid")
 	id := util.Val(data, "uid")
 	// 查询数据库
@@ -276,7 +271,6 @@ func getRoomUsers(data map[string]interface{}) (map[string]interface{}, *nprotoo
 */
 // 获取房间其他用户推流数据
 func getRoomPubs(data map[string]interface{}) (map[string]interface{}, *nprotoo.Error) {
-	logger.Debugf("islb.getRoomPubs data=%v", data)
 	rid := util.Val(data, "rid")
 	id := util.Val(data, "uid")
 	// 查询数据库

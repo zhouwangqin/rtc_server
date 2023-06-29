@@ -1,11 +1,11 @@
 package src
 
 import (
+	"log"
 	"net/http"
 	"server/pkg/util"
 	"server/server/biz/ws"
 
-	"github.com/zhuanxin-sz/go-protoo/logger"
 	"github.com/zhuanxin-sz/go-protoo/transport"
 )
 
@@ -21,7 +21,7 @@ func InitSignalServer(host string, port int, cert, key string) {
 }
 
 func handler(transport *transport.WebSocketTransport, request *http.Request) {
-	logger.Debugf("handler = %v", request.URL.Query())
+	log.Printf("handler = %v", request.URL.Query())
 	vars := request.URL.Query()
 	peerID := vars["peer"]
 	if peerID == nil || len(peerID) < 1 {

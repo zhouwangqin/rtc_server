@@ -1,11 +1,11 @@
 package ws
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/gorilla/websocket"
-	"github.com/zhuanxin-sz/go-protoo/logger"
 	"github.com/zhuanxin-sz/go-protoo/peer"
 	"github.com/zhuanxin-sz/go-protoo/transport"
 )
@@ -26,12 +26,12 @@ const (
 
 // DefaultAccept 默认接受处理
 func DefaultAccept(data map[string]interface{}) {
-	logger.Debugf("WebSocket accept data => %v", data)
+	log.Printf("WebSocket accept data => %v", data)
 }
 
 // DefaultReject 默认拒绝处理
 func DefaultReject(errorCode int, errorReason string) {
-	logger.Debugf("WebSocket reject errorCode => %v errorReason => %v", errorCode, errorReason)
+	log.Printf("WebSocket reject errorCode => %v errorReason => %v", errorCode, errorReason)
 }
 
 // WebSocketServerConfig 配置对象
@@ -93,7 +93,7 @@ func (server *WebSocketServer) Bind(cfg WebSocketServerConfig) {
 	//http.Handle("/", http.FileServer(http.Dir(cfg.HTMLRoot)))
 
 	//if cfg.CertFile == "" || cfg.KeyFile == "" {
-	logger.Debugf("non-TLS WebSocketServer listening on: %s:%d", cfg.Host, cfg.Port)
+	log.Printf("non-TLS WebSocketServer listening on: %s:%d", cfg.Host, cfg.Port)
 	panic(http.ListenAndServe(cfg.Host+":"+strconv.Itoa(cfg.Port), nil))
 	/*} else {
 		logger.Infof("TLS WebSocketServer listening on: %s:%d", cfg.Host, cfg.Port)

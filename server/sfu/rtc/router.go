@@ -2,12 +2,12 @@ package rtc
 
 import (
 	"errors"
+	"log"
 	"sync"
 	"time"
 
 	"github.com/pion/rtcp"
 	"github.com/pion/webrtc/v2"
-	"github.com/zhuanxin-sz/go-protoo/logger"
 )
 
 const (
@@ -42,19 +42,17 @@ func NewRouter(id string) *Router {
 func (router *Router) AddPub(mid, sdp string) (string, error) {
 	pub, err := NewPub(mid)
 	if err != nil {
-		logger.Errorf("router add pub err=%v, id=%s, mid=%s", err, router.Id, mid)
+		log.Printf("router add pub err=%v, id=%s, mid=%s", err, router.Id, mid)
 		return "", err
 	}
 
 	offer := webrtc.SessionDescription{Type: webrtc.SDPTypeOffer, SDP: sdp}
 	answer, err := pub.Answer(offer)
 	if err != nil {
-		logger.Errorf("router pub answer err=%v, id=%s, mid=%s", err, router.Id, mid)
+		log.Printf("router pub answer err=%v, id=%s, mid=%s", err, router.Id, mid)
 		pub.Close()
 		return "", err
 	}
-
-	logger.Debugf("router add pub = %s", pub.Id)
 
 	router.pub = pub
 	// 启动RTP处理线程
@@ -67,7 +65,7 @@ func (router *Router) AddPub(mid, sdp string) (string, error) {
 func (router *Router) AddSub(sid, sdp string) (string, error) {
 	sub, err := NewSub(sid)
 	if err != nil {
-		logger.Errorf("router add sub err=%v, id=%s, sid=%s", err, router.Id, sid)
+		log.Printf("router add sub err=%v, id=%s, sid=%s", err, router.Id, sid)
 		return "", err
 	}
 
@@ -76,7 +74,7 @@ func (router *Router) AddSub(sid, sdp string) (string, error) {
 			if router.pub.TrackAudio.Track() != nil {
 				err = sub.AddTrack(router.pub.TrackAudio.Track())
 				if err != nil {
-					logger.Errorf("router sub add audio track err=%v, id=%s, sid=%s", err, router.Id, sid)
+					log.Printf("router sub add audio track err=%v, id=%s, sid=%s", err, router.Id, sid)
 					sub.Close()
 					return "", err
 				}
@@ -89,7 +87,7 @@ func (router *Router) AddSub(sid, sdp string) (string, error) {
 			if router.pub.TrackVideo.Track() != nil {
 				err = sub.AddTrack(router.pub.TrackVideo.Track())
 				if err != nil {
-					logger.Errorf("router sub add video track err=%v, id=%s, sid=%s", err, router.Id, sid)
+					log.Printf("router sub add video track err=%v, id=%s, sid=%s", err, router.Id, sid)
 					sub.Close()
 					return "", err
 				}
@@ -105,12 +103,10 @@ func (router *Router) AddSub(sid, sdp string) (string, error) {
 	offer := webrtc.SessionDescription{Type: webrtc.SDPTypeOffer, SDP: sdp}
 	answer, err := sub.Answer(offer)
 	if err != nil {
-		logger.Errorf("router sub offer err=%v, id=%s, sid=%s", err, router.Id, sid)
+		log.Printf("router sub offer err=%v, id=%s, sid=%s", err, router.Id, sid)
 		sub.Close()
 		return "", err
 	}
-
-	logger.Debugf("router add sub = %s", sub.Id)
 
 	router.subsLock.Lock()
 	router.subs[sid] = sub
@@ -121,7 +117,7 @@ func (router *Router) AddSub(sid, sdp string) (string, error) {
 	return answer.SDP, nil
 }
 
-// GetSub 获取Sub对象
+// GetPub 获取Pub对象
 func (router *Router) GetPub() *Pub {
 	return router.pub
 }
@@ -144,9 +140,12 @@ func (router *Router) DelSub(sid string) {
 	}
 }
 
-// GetSubCount 获取subs数量
-func (router *Router) GetSubs() map[string]*Sub {
-	return router.subs
+// GetSubs 获取subs数量
+func (router *Router) GetSubs() int {
+	router.subsLock.Lock()
+	defer router.subsLock.Unlock()
+	nCount := len(router.subs)
+	return nCount
 }
 
 // Alive 判断Router状态

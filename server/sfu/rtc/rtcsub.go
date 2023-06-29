@@ -3,11 +3,11 @@ package rtc
 import (
 	"errors"
 	"io"
+	"log"
 
 	"github.com/pion/rtcp"
 	"github.com/pion/rtp"
 	"github.com/pion/webrtc/v2"
-	"github.com/zhuanxin-sz/go-protoo/logger"
 )
 
 const (
@@ -48,7 +48,7 @@ func NewSub(sid string) (*Sub, error) {
 	api := webrtc.NewAPI(webrtc.WithMediaEngine(engine), webrtc.WithSettingEngine(setting))
 	pcnew, err := api.NewPeerConnection(cfg)
 	if err != nil {
-		logger.Errorf("sub new peer err=%v, sid=%s", err, sid)
+		log.Printf("sub new peer err=%v, sid=%s", err, sid)
 		return nil, err
 	}
 
@@ -71,23 +71,19 @@ func NewSub(sid string) (*Sub, error) {
 // OnPeerConnect Sub连接状态回调
 func (sub *Sub) OnPeerConnect(state webrtc.PeerConnectionState) {
 	if state == webrtc.PeerConnectionStateConnected {
-		logger.Debugf("sub peer connected = %s", sub.Id)
 		sub.alive = true
 		go sub.DoVideoRtcp()
 	}
 	if state == webrtc.PeerConnectionStateDisconnected {
-		logger.Debugf("sub peer disconnected = %s", sub.Id)
 		sub.alive = false
 	}
 	if state == webrtc.PeerConnectionStateFailed {
-		logger.Debugf("sub peer failed = %s", sub.Id)
 		sub.alive = false
 	}
 }
 
 // Close 关闭Sub
 func (sub *Sub) Close() {
-	logger.Debugf("sub close = %s", sub.Id)
 	sub.stop = true
 	sub.pc.Close()
 	close(sub.RtcpAudioCh)
@@ -98,13 +94,13 @@ func (sub *Sub) Close() {
 func (sub *Sub) AddTrack(remoteTrack *webrtc.Track) error {
 	track, err := sub.pc.NewTrack(remoteTrack.PayloadType(), remoteTrack.SSRC(), remoteTrack.ID(), remoteTrack.Label())
 	if err != nil {
-		logger.Errorf("sub new track err=%v, sid=%s", err, sub.Id)
+		log.Printf("sub new track err=%v, sid=%s", err, sub.Id)
 		return err
 	}
 
 	sender, err := sub.pc.AddTrack(track)
 	if err != nil {
-		logger.Errorf("sub add track err=%v, sid=%s", err, sub.Id)
+		log.Printf("sub add track err=%v, sid=%s", err, sub.Id)
 		return err
 	}
 
@@ -121,19 +117,19 @@ func (sub *Sub) AddTrack(remoteTrack *webrtc.Track) error {
 func (sub *Sub) Answer(offer webrtc.SessionDescription) (webrtc.SessionDescription, error) {
 	err := sub.pc.SetRemoteDescription(offer)
 	if err != nil {
-		logger.Errorf("sub set answer err=%v, sid=%s", err, sub.Id)
+		log.Printf("sub set answer err=%v, sid=%s", err, sub.Id)
 		return webrtc.SessionDescription{}, err
 	}
 
 	sdp, err := sub.pc.CreateAnswer(nil)
 	if err != nil {
-		logger.Errorf("sub create answer err=%v, sid=%s", err, sub.Id)
+		log.Printf("sub create answer err=%v, sid=%s", err, sub.Id)
 		return webrtc.SessionDescription{}, err
 	}
 
 	err = sub.pc.SetLocalDescription(sdp)
 	if err != nil {
-		logger.Errorf("sub set answer err=%v, sid=%s", err, sub.Id)
+		log.Printf("sub set answer err=%v, sid=%s", err, sub.Id)
 		return webrtc.SessionDescription{}, err
 	}
 	return sdp, nil

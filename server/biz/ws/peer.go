@@ -1,7 +1,8 @@
 package ws
 
 import (
-	"github.com/zhuanxin-sz/go-protoo/logger"
+	"log"
+
 	"github.com/zhuanxin-sz/go-protoo/peer"
 	"github.com/zhuanxin-sz/go-protoo/transport"
 )
@@ -25,6 +26,6 @@ func (peer *Peer) On(event, listener interface{}) {
 
 // Close Peer关闭
 func (peer *Peer) Close() {
-	logger.Debugf("Close Room Peer=%s", peer.ID())
+	log.Printf("Close Room Peer=%s", peer.ID())
 	peer.Peer.Close()
 }

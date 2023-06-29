@@ -1,11 +1,11 @@
 package src
 
 import (
+	"log"
 	"server/pkg/proto"
 	"server/pkg/util"
 	"server/server/biz/ws"
 
-	"github.com/zhuanxin-sz/go-protoo/logger"
 	nprotoo "github.com/zhuanxin-sz/nats-protoo"
 )
 
@@ -86,14 +86,14 @@ func join(peer *ws.Peer, msg map[string]interface{}, accept ws.AcceptFunc, rejec
 					SendNotifysByUid(rid, uid, proto.BizToBizOnStreamRemove, rmPubs)
 				}
 			} else {
-				logger.Errorf("biz.join request islb streamRemove err:%s", err.Reason)
+				log.Printf("biz.join request islb streamRemove err:%s", err.Reason)
 			}
 
 			// 删除数据库人
 			// resp = util.Map("rid", rid, "uid", uid)
 			_, err = islbRpc.SyncRequest(proto.BizToIslbOnLeave, util.Map("rid", rid, "uid", uid))
 			if err != nil {
-				logger.Errorf("biz.join request islb clientLeave err:%s", err.Reason)
+				log.Printf("biz.join request islb clientLeave err:%s", err.Reason)
 			}
 
 			// 发送广播给所有人
@@ -162,14 +162,14 @@ func leave(peer *ws.Peer, msg map[string]interface{}, accept ws.AcceptFunc, reje
 			SendNotifysByUid(rid, uid, proto.BizToBizOnStreamRemove, rmPubs)
 		}
 	} else {
-		logger.Errorf("biz.leave request islb streamRemove err:%s", err.Reason)
+		log.Printf("biz.leave request islb streamRemove err:%s", err.Reason)
 	}
 
 	// 删除数据库人
 	// resp = util.Map("rid", rid, "uid", uid)
 	resp, err = islbRpc.SyncRequest(proto.BizToIslbOnLeave, util.Map("rid", rid, "uid", uid))
 	if err != nil {
-		logger.Errorf("biz.leave request islb clientLeave err:%s", err.Reason)
+		log.Printf("biz.leave request islb clientLeave err:%s", err.Reason)
 	}
 
 	// 发送广播给其他人

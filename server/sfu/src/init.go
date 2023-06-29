@@ -1,6 +1,7 @@
 package src
 
 import (
+	"log"
 	"net/http"
 	_ "net/http/pprof"
 	"server/pkg/etcd"
@@ -11,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/zhuanxin-sz/go-protoo/logger"
 	nprotoo "github.com/zhuanxin-sz/nats-protoo"
 )
 
@@ -57,7 +57,7 @@ func Stop() {
 	}
 }
 
-// CheckRTC 通知信令流被移除
+// CheckRTC 通知信令服务器流被移除
 func CheckRTC() {
 	for id := range rtc.CleanRouter {
 		str := strings.Split(id, "/")
@@ -73,24 +73,11 @@ func UpdatePayload() {
 	t := time.NewTicker(statCycle)
 	defer t.Stop()
 	for range t.C {
-		var streamcnt int = 0
-		for _, router := range rtc.GetRouters() {
-			logger.Debugf("router id = %s", router.Id)
-			pub := router.GetPub()
-			if pub != nil {
-				streamcnt++
-				logger.Debugf("router pub id = %s", pub.Id)
-			}
-			for _, sub := range router.GetSubs() {
-				streamcnt++
-				logger.Debugf("router sub id = %s", sub.Id)
-			}
-		}
-		node.UpdateNodePayload(streamcnt)
+		node.UpdateNodePayload(rtc.GetRouters())
 	}
 }
 
 func debug() {
-	logger.Debugf("Start sfu pprof on %s", conf.Global.Pprof)
+	log.Printf("Start sfu pprof on %s", conf.Global.Pprof)
 	http.ListenAndServe(conf.Global.Pprof, nil)
 }

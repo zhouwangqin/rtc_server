@@ -1,6 +1,7 @@
 package src
 
 import (
+	"log"
 	"net/http"
 	_ "net/http/pprof"
 	"server/pkg/etcd"
@@ -8,7 +9,6 @@ import (
 	"server/server/islb/conf"
 	"time"
 
-	"github.com/zhuanxin-sz/go-protoo/logger"
 	nprotoo "github.com/zhuanxin-sz/nats-protoo"
 )
 
@@ -50,6 +50,6 @@ func Stop() {
 }
 
 func debug() {
-	logger.Debugf("Start islb pprof on %s", conf.Global.Pprof)
+	log.Printf("Start islb pprof on %s", conf.Global.Pprof)
 	http.ListenAndServe(conf.Global.Pprof, nil)
 }
